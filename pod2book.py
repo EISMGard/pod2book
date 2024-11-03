@@ -6,6 +6,8 @@ import requests
 from datetime import datetime
 from ebooklib import epub
 import whisper
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 def transcribe_audio(audio_file):
     model = whisper.load_model("base")
@@ -63,7 +65,7 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
         lang="en"
     )
     final_page.content = (
-        '<p>Thank you for reading this eBook. It was created using pod2book. '
+        '<p>This eBook was created using pod2book. '
         'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
     )
     book.add_item(final_page)
@@ -134,6 +136,18 @@ def download_podcast(rss_url, start, end):
             with open(cover_img_path, 'wb') as f:
                 f.write(response.content)
 
+    # Set up retry strategy
+    retry_strategy = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    http = requests.Session()
+    http.mount("https://", adapter)
+    http.mount("http://", adapter)
+
     # Collect chapter texts
     chapter_texts = []
     for episode in episodes:
@@ -141,9 +155,11 @@ def download_podcast(rss_url, start, end):
         audio_url = episode.enclosures[0].href
         audio_filename = os.path.join(download_directory, os.path.basename(audio_url))
         if not os.path.exists(audio_filename):
-            response = requests.get(audio_url)
+            response = http.get(audio_url, stream=True)
             with open(audio_filename, 'wb') as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
 
         # Transcribe the audio
         transcription = transcribe_audio(audio_filename)
