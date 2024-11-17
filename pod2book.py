@@ -10,9 +10,13 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 def transcribe_audio(audio_file):
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_file)
-    return result["text"]
+    try:
+        model = whisper.load_model("medium.en")
+        result = model.transcribe(audio_file)
+        return result["text"]
+    except Exception as e:
+        print(f"Error transcribing audio: {audio_file}: {e}")
+        return ""
 
 def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, output_directory):
     book = epub.EpubBook()
@@ -26,21 +30,22 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 
     # Create the intro chapter with clickable link
     intro_chapter = epub.EpubHtml(
-        title="Table of Contents",
-        file_name="toc.xhtml",
+        title="About pod2book",
+        file_name="about_pod2book.xhtml",
         lang="en"
     )
-    intro_content = (
+
+    intro_chapter.content = (
         f"<h1>{podcast_title}</h1>"
         f"<h3>by {podcast_author}</h3>"
         '<p>This eBook was created using pod2book. '
         'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
-        "<h2>Table of Contents</h2><ul>"
     )
-    for i, (chapter_title, _) in enumerate(chapter_texts):
-        intro_content += f'<li><a href="chapter_{i+1}.xhtml">{chapter_title}</a></li>'
-    intro_content += "</ul>"
-    intro_chapter.content = intro_content
+
+#    for i, (chapter_title, _) in enumerate(chapter_texts):
+#        intro_content += f'<li><a href="chapter_{i+1}.xhtml">{chapter_title}</a></li>'
+#    intro_content += "</ul>"
+#    intro_chapter.content = intro_content
     book.add_item(intro_chapter)
 
     # Add each episode as a chapter
@@ -78,7 +83,7 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
         lang="en"
     )
     cover_page.content = (
-        '<img src="cover.jpg" alt="Cover Image" style="width:100%; height:auto;"/>'
+        '<img src="cover.jpg" alt="Cover Imae" style="width:100%; height:auto;"/>'
     )
     book.add_item(cover_page)
     chapters.append(cover_page)
@@ -113,6 +118,12 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 def download_podcast(rss_url, start, end):
     # Parse the RSS feed
     feed = feedparser.parse(rss_url)
+
+     # Debugging statement to check if feed is parsed correctly
+    print(f"Feed Title: {feed.feed.title}")
+    print(f"Number of entries in feed: {len(feed.entries)}")
+    
+
     podcast_title = feed.feed.title
     podcast_author = feed.feed.author if 'author' in feed.feed else 'Unknown Author'
     episodes = feed.entries
@@ -122,6 +133,7 @@ def download_podcast(rss_url, start, end):
 
     # Slice the episodes list to get the specified range
     episodes = episodes[start:end]
+    print(f"Number of episodes to download: {len(episodes)}")
 
     # Create a directory named after the podcast title
     download_directory = podcast_title
@@ -151,26 +163,31 @@ def download_podcast(rss_url, start, end):
     # Collect chapter texts
     chapter_texts = []
     for episode in episodes:
-        # Download the episode audio
-        audio_url = episode.enclosures[0].href
-        audio_filename = os.path.join(download_directory, os.path.basename(audio_url))
-        if not os.path.exists(audio_filename):
-            response = http.get(audio_url, stream=True)
-            with open(audio_filename, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+        try:
+            print(f"Processing episode: {episode.title}")
+            # Download the episode audio
+            audio_url = episode.enclosures[0].href
+            audio_filename = os.path.join(download_directory, os.path.basename(audio_url))
+            if not os.path.exists(audio_filename):
+                response = http.get(audio_url, stream=True)
+                with open(audio_filename, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
 
-        # Transcribe the audio
-        transcription = transcribe_audio(audio_filename)
+            # Transcribe the audio
+            transcription = transcribe_audio(audio_filename)
 
-        chapter_title = episode.title
-        chapter_content = transcription
-        chapter_texts.append((chapter_title, chapter_content))
+            chapter_title = episode.title
+            chapter_content = transcription
+            chapter_texts.append((chapter_title, chapter_content))
 
-        # Remove the MP3 file after processing
-        os.remove(audio_filename)
-
+            # Remove the MP3 file after processing
+            os.remove(audio_filename)
+        except Exception as e:
+            print(f"Error processing episode: {episode.title}")
+            print(e)
+        print(f"Total chapters collected: {len(chapter_texts)}")
     create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, download_directory)
 
 def main():
