@@ -78,12 +78,12 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 
     # Add cover image as the last page
     cover_page = epub.EpubHtml(
-        title="Cover",
+        title="Back Cover",
         file_name="cover.xhtml",
         lang="en"
     )
     cover_page.content = (
-        '<img src="cover.jpg" alt="Cover Imae" style="width:100%; height:auto;"/>'
+        '<img src="cover.jpg" alt="Cover Image" style="width:100%; height:auto;"/>'
     )
     book.add_item(cover_page)
     chapters.append(cover_page)
