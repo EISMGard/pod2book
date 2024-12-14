@@ -18,7 +18,7 @@ def transcribe_audio(audio_file):
         print(f"Error transcribing audio: {audio_file}: {e}")
         return ""
 
-def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, output_directory):
+def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, output_directory, license_text):
     book = epub.EpubBook()
     book.set_identifier('id123456')
     book.set_title(podcast_title)
@@ -42,10 +42,6 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
         'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
     )
 
-#    for i, (chapter_title, _) in enumerate(chapter_texts):
-#        intro_content += f'<li><a href="chapter_{i+1}.xhtml">{chapter_title}</a></li>'
-#    intro_content += "</ul>"
-#    intro_chapter.content = intro_content
     book.add_item(intro_chapter)
 
     # Add each episode as a chapter
@@ -88,6 +84,19 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
     book.add_item(cover_page)
     chapters.append(cover_page)
 
+    # Add copyright page with license text
+    copyright_page = epub.EpubHtml(
+        title="Copyright",
+        file_name="copyright.xhtml",
+        lang="en"
+    )
+    copyright_page.content = (
+        f'<p>© {datetime.now().year} {podcast_author}. All rights reserved.</p>'
+        f'<p>{license_text} {podcast_author}</p>'
+    )
+    book.add_item(copyright_page)
+    chapters.append(copyright_page)
+
     # Define Table of Contents
     book.toc = (
         epub.Link(intro_chapter.file_name, intro_chapter.title, 'intro'),
@@ -115,11 +124,11 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
     epub_filename = os.path.join(output_directory, f"{podcast_title}.epub")
     epub.write_epub(epub_filename, book, {})
 
-def download_podcast(rss_url, start, end):
+def download_podcast(rss_url, start, end, license_text):
     # Parse the RSS feed
     feed = feedparser.parse(rss_url)
 
-     # Debugging statement to check if feed is parsed correctly
+    # Debugging statement to check if feed is parsed correctly
     print(f"Feed Title: {feed.feed.title}")
     print(f"Number of entries in feed: {len(feed.entries)}")
     
@@ -188,18 +197,19 @@ def download_podcast(rss_url, start, end):
             print(f"Error processing episode: {episode.title}")
             print(e)
         print(f"Total chapters collected: {len(chapter_texts)}")
-    create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, download_directory)
+    create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, download_directory, license_text)
 
 def main():
     parser = argparse.ArgumentParser(description='Download podcast episodes, convert audio to text, and create an ebook.')
     parser.add_argument('rss_url', type=str, help='The RSS feed URL of the podcast')
     parser.add_argument('--start', type=int, default=0, help='The starting index of episodes to download (inclusive)')
     parser.add_argument('--end', type=int, default=None, help='The ending index of episodes to download (exclusive)')
+    parser.add_argument('--license', type=str, default='', help='The license text to include in the ebook')
 
     args = parser.parse_args()
 
-    # Call the podcast download function with the specified range
-    download_podcast(args.rss_url, args.start, args.end)
+    # Call the podcast download function with the specified range and license text
+    download_podcast(args.rss_url, args.start, args.end, args.license)
 
 if __name__ == '__main__':
     main()

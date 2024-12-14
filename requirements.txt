@@ -1,5 +1,4 @@
 feedparser
 requests
 ebooklib
-whisper
-
+openai-whisper
