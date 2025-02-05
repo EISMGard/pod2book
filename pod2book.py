@@ -27,6 +27,18 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 
     if os.path.exists(cover_img_path):
         book.set_cover("cover.jpg", open(cover_img_path, 'rb').read())
+    
+    # Add cover image
+    cover_page = epub.EpubHtml(
+        title="Back Cover",
+        file_name="cover.xhtml",
+        lang="en"
+    )
+    cover_page.content = (
+        '<img src="cover.jpg" alt="Cover Image" style="width:100%; height:auto;"/>'
+    )
+    book.add_item(cover_page)
+    chapters.append(cover_page)
 
     # Create the intro chapter with clickable link
     intro_chapter = epub.EpubHtml(
@@ -72,17 +84,7 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
     book.add_item(final_page)
     chapters.append(final_page)
 
-    # Add cover image as the last page
-    cover_page = epub.EpubHtml(
-        title="Back Cover",
-        file_name="cover.xhtml",
-        lang="en"
-    )
-    cover_page.content = (
-        '<img src="cover.jpg" alt="Cover Image" style="width:100%; height:auto;"/>'
-    )
-    book.add_item(cover_page)
-    chapters.append(cover_page)
+
 
     # Add copyright page with license text
     copyright_page = epub.EpubHtml(
@@ -99,7 +101,7 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 
     # Define Table of Contents
     book.toc = (
-        epub.Link(intro_chapter.file_name, intro_chapter.title, 'intro'),
+       # epub.Link(intro_chapter.file_name, intro_chapter.title, 'intro'),
         (epub.Section('Episodes'), chapters),
     )
 
