@@ -30,31 +30,56 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
     
     # Add cover image
     cover_page = epub.EpubHtml(
-        title="Back Cover",
-        file_name="cover.xhtml",
+        title="Front Cover",
+        file_name="cover_page.xhtml",
         lang="en"
     )
     cover_page.content = (
         '<img src="cover.jpg" alt="Cover Image" style="width:100%; height:auto;"/>'
     )
     book.add_item(cover_page)
-    chapters.append(cover_page)
 
-    # Create the intro chapter with clickable link
-    intro_chapter = epub.EpubHtml(
-        title="About pod2book",
-        file_name="about_pod2book.xhtml",
-        lang="en"
-    )
-
-    intro_chapter.content = (
+    # about chapter
+    about_page = epub.EpubHtml(
+        title="About this book and stuff",
+        file_name='about_page.xhtml',
+        lang='en'
+        )
+    about_page.content = (
         f"<h1>{podcast_title}</h1>"
         f"<h3>by {podcast_author}</h3>"
-        '<p>This eBook was created using pod2book. '
+        '<p>This eBook was created from a podcast using pod2book. '
         'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
-    )
+        )
+    book.add_item(about_page)
 
-    book.add_item(intro_chapter)
+    # Add copyright page with license text
+    copyright_page = epub.EpubHtml(
+        title="Copyright",
+        file_name="copyright_page.xhtml",
+        lang="en"
+    )
+    copyright_page.content = (
+        f"<p>© {datetime.now().year} {podcast_author}. All rights reserved.</p>"
+        f"<p>{license_text} {podcast_author}</p>"
+    )
+    book.add_item(copyright_page)
+
+    # # Create the intro chapter with clickable link
+    # intro_chapter = epub.EpubHtml(
+    #     title="About pod2book",
+    #     file_name="about_pod2book.xhtml",
+    #     lang="en"
+    # )
+
+    # intro_chapter.content = (
+    #     f"<h1>{podcast_title}</h1>"
+    #     f"<h3>by {podcast_author}</h3>"
+    #     '<p>This eBook was created using pod2book. '
+    #     'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
+    # )
+
+    # book.add_item(intro_chapter)
 
     # Add each episode as a chapter
     chapters = []
@@ -73,36 +98,22 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
 
     # Add final page with the same message from the introduction
     final_page = epub.EpubHtml(
-        title="About pod2book",
-        file_name="about.xhtml",
+        title="final_page",
+        file_name="final_page.xhtml",
         lang="en"
     )
     final_page.content = (
-        '<p>This eBook was created using pod2book. '
+        '<p>Thanks for reading yet another wonderful podcat converted to eBook from pod2book. '
         'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
     )
     book.add_item(final_page)
     chapters.append(final_page)
 
-
-
-    # Add copyright page with license text
-    copyright_page = epub.EpubHtml(
-        title="Copyright",
-        file_name="copyright.xhtml",
-        lang="en"
-    )
-    copyright_page.content = (
-        f'<p>© {datetime.now().year} {podcast_author}. All rights reserved.</p>'
-        f'<p>{license_text} {podcast_author}</p>'
-    )
-    book.add_item(copyright_page)
-    chapters.append(copyright_page)
-
     # Define Table of Contents
     book.toc = (
        # epub.Link(intro_chapter.file_name, intro_chapter.title, 'intro'),
-        (epub.Section('Episodes'), chapters),
+       # (epub.Section('Episodes'), chapters),
+       (chapters)
     )
 
     # Add default NCX and Nav files
@@ -120,7 +131,7 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
     book.add_item(nav_css)
 
     # Set the order of the chapters
-    book.spine = ['nav', intro_chapter] + chapters
+    book.spine = [copyright_page, about_page, 'nav'] + chapters
 
     # Write the EPUB file to the output directory
     epub_filename = os.path.join(output_directory, f"{podcast_title}.epub")
