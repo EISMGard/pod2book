@@ -103,8 +103,8 @@ def create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, o
         lang="en"
     )
     final_page.content = (
-        '<p>Thanks for reading yet another wonderful podcat converted to eBook from pod2book. '
-        'Find out more at <a href="https://pod2book.com">pod2book.com</a>.</p>'
+        '<p>Thanks for reading yet another wonderful eBook from '
+        '<a href="https://pod2book.com">pod2book.com</a>.</p>'
     )
     book.add_item(final_page)
     chapters.append(final_page)
