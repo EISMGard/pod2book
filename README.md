@@ -1,4 +1,5 @@
 # pod2book
+Convert podcasts to eBooks.
 
 Find out the story at [pod2book.com/about](pod2book.com/about)
 
