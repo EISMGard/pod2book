@@ -1,7 +1,7 @@
 # pod2book
 Convert podcasts to eBooks.
 
-Find out the story at [pod2book.com/about](pod2book.com/about)
+Find out the story at [pod2book.com/about](https://pod2book.com/about)
 
 "Stop, collaborate and don’t listen–Read instead. Easily convert your podcast to an eBook using AI. Help the neurodivergent, deaf, hard of hearing, or people who just like to read." 
 
