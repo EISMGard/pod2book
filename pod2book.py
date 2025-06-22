@@ -144,14 +144,18 @@ def download_podcast(rss_url, start, end, license_text):
     # Debugging statement to check if feed is parsed correctly
     print(f"Feed Title: {feed.feed.title}")
     print(f"Number of entries in feed: {len(feed.entries)}")
-    
-
     podcast_title = feed.feed.title
     podcast_author = feed.feed.author if 'author' in feed.feed else 'Unknown Author'
-    episodes = feed.entries
-
+    #episodes = feed.entries
+    episodes = sorted(feed.entries, key=lambda e: e.published_parsed)
     # Sort episodes in chronological order
-    episodes = sorted(episodes, key=lambda e: e.published_parsed)
+    #episodes = sorted(episodes, key=lambda e: e.published_parsed)
+
+
+    # If end is the same as start, include exactly one episode
+    if end is not None and end == start:
+        end = start + 1
+
 
     # Slice the episodes list to get the specified range
     episodes = episodes[start:end]
