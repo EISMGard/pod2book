@@ -146,16 +146,11 @@ def download_podcast(rss_url, start, end, license_text):
     print(f"Number of entries in feed: {len(feed.entries)}")
     podcast_title = feed.feed.title
     podcast_author = feed.feed.author if 'author' in feed.feed else 'Unknown Author'
-    #episodes = feed.entries
     episodes = sorted(feed.entries, key=lambda e: e.published_parsed)
-    # Sort episodes in chronological order
-    #episodes = sorted(episodes, key=lambda e: e.published_parsed)
-
 
     # If end is the same as start, include exactly one episode
     if end is not None and end == start:
         end = start + 1
-
 
     # Slice the episodes list to get the specified range
     episodes = episodes[start:end]
@@ -164,6 +159,12 @@ def download_podcast(rss_url, start, end, license_text):
     # Create a directory named after the podcast title
     download_directory = podcast_title
     os.makedirs(download_directory, exist_ok=True)
+    
+    # Create subdirectories for staging
+    audio_staging_dir = os.path.join(download_directory, 'audio_staging')
+    text_staging_dir = os.path.join(download_directory, 'text_staging')
+    os.makedirs(audio_staging_dir, exist_ok=True)
+    os.makedirs(text_staging_dir, exist_ok=True)
 
     # Download cover image if available
     cover_img_path = os.path.join(download_directory, 'cover.jpg')
@@ -188,33 +189,67 @@ def download_podcast(rss_url, start, end, license_text):
 
     # Collect chapter texts
     chapter_texts = []
-    for episode in episodes:
+    for i, episode in enumerate(episodes):
         try:
-            print(f"Processing episode: {episode.title}")
-            # Download the episode audio
-            audio_url = episode.enclosures[0].href
-            audio_filename = os.path.join(download_directory, os.path.basename(audio_url))
-            if not os.path.exists(audio_filename):
-                response = http.get(audio_url, stream=True)
-                with open(audio_filename, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
+            print(f"Processing episode {i+1}/{len(episodes)}: {episode.title}")
+            
+            # Create safe filename for staging
+            safe_filename = "".join(c for c in episode.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_filename = safe_filename[:100]  # Limit filename length
+            
+            # Check if transcription already exists
+            transcription_file = os.path.join(text_staging_dir, f"{safe_filename}_{i}.txt")
+            
+            if os.path.exists(transcription_file):
+                print(f"Loading existing transcription for: {episode.title}")
+                with open(transcription_file, 'r', encoding='utf-8') as f:
+                    transcription = f.read()
+            else:
+                # Download and transcribe audio
+                audio_url = episode.enclosures[0].href
+                audio_filename = os.path.join(audio_staging_dir, f"{safe_filename}_{i}.mp3")
+                
+                # Download audio if not already downloaded
+                if not os.path.exists(audio_filename):
+                    print(f"Downloading audio: {episode.title}")
+                    response = http.get(audio_url, stream=True)
+                    with open(audio_filename, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                    print(f"Audio downloaded: {audio_filename}")
+                else:
+                    print(f"Using existing audio file: {audio_filename}")
 
-            # Transcribe the audio
-            transcription = transcribe_audio(audio_filename)
+                # Transcribe the audio
+                print(f"Transcribing: {episode.title}")
+                transcription = transcribe_audio(audio_filename)
+                
+                # Save transcription to staging
+                with open(transcription_file, 'w', encoding='utf-8') as f:
+                    f.write(transcription)
+                print(f"Transcription saved: {transcription_file}")
 
             chapter_title = episode.title
             chapter_content = transcription
             chapter_texts.append((chapter_title, chapter_content))
 
-            # Remove the MP3 file after processing
-            os.remove(audio_filename)
         except Exception as e:
             print(f"Error processing episode: {episode.title}")
             print(e)
+            # Continue with next episode instead of crashing
+            continue
+            
         print(f"Total chapters collected: {len(chapter_texts)}")
+    
+    # Create the ebook
     create_ebook(podcast_title, podcast_author, chapter_texts, cover_img_path, download_directory, license_text)
+    
+    # Optionally clean up staging directories after successful ebook creation
+    import shutil
+    shutil.rmtree(audio_staging_dir)
+    shutil.rmtree(text_staging_dir)
+    print(f"Ebook created successfully! Staging files preserved in {download_directory}")
 
 def main():
     parser = argparse.ArgumentParser(description='Download podcast episodes, convert audio to text, and create an ebook.')
