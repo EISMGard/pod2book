@@ -95,5 +95,5 @@ tqdm==4.67.1
 typer==0.15.1
 typing_extensions==4.12.2
 tzdata==2025.1
-urllib3==2.3.0
+urllib3==2.5.0
 yarl==1.18.3
