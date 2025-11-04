@@ -8,6 +8,7 @@ from ebooklib import epub
 import whisper
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from wakepy import keep
 
 def transcribe_audio(audio_file):
     try:
@@ -260,8 +261,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Call the podcast download function with the specified range and license text
-    download_podcast(args.rss_url, args.start, args.end, args.license)
+  # Keep the system awake while processing
+    with keep.running(on_fail='warn'):
+        # Call the podcast download function with the specified range and license text
+        download_podcast(args.rss_url, args.start, args.end, args.license)
 
 if __name__ == '__main__':
     main()
